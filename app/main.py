@@ -1,9 +1,10 @@
+import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from app.api.routers.absences import router as absences_router
 from app.api.routers.auth import router as auth_router
 from app.api.routers.classes import router as classes_router
@@ -93,6 +94,13 @@ app.add_middleware(
 @app.get("/", include_in_schema=False)
 async def root():
     return RedirectResponse(url="/docs")
+
+@app.get("/download", include_in_schema=False)
+async def download_apk():
+    apk_path = "D:/proiect2/edugrade.apk"
+    if os.path.exists(apk_path):
+        return FileResponse(apk_path, media_type="application/vnd.android.package-archive", filename="EduGrade.apk")
+    return {"message": "APK-ul este disponibil pentru descarcare din release."}
 
 app.include_router(health_router)
 app.include_router(auth_router, prefix="/api")

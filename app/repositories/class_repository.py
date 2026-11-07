@@ -31,6 +31,21 @@ class ClassRepository:
         result = await db.execute(stmt)
         return result.scalars().all()
 
+    async def list_all_students(self, db: AsyncSession, class_id: Optional[int] = None) -> Sequence[User]:
+        stmt = (
+            select(User)
+            .options(
+                joinedload(User.clasa),
+                joinedload(User.role_rel),
+            )
+            .where(User.clasa_id.is_not(None), User.is_active == True)
+        )
+        if class_id:
+            stmt = stmt.where(User.clasa_id == class_id)
+        stmt = stmt.order_by(User.nume.asc())
+        result = await db.execute(stmt)
+        return result.scalars().all()
+
     async def create_class(self, db: AsyncSession, data: SchoolClassCreate) -> SchoolClass:
         school_class = SchoolClass(
             nume=data.nume,

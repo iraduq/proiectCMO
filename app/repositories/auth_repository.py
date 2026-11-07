@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 from app.api.schemas.edugrade import RegisterRequest
-from app.db.models import ParentStudent, Role, SchoolClass, User, UserRole
+from app.db.models import ParentStudent, Role, SchoolClass, TeacherClassSubject, User, UserRole
 
 class AuthRepository:
     async def get_role_by_name(self, db: AsyncSession, role_name: str) -> Optional[Role]:
@@ -18,6 +18,7 @@ class AuthRepository:
             .options(
                 joinedload(User.role_rel).selectinload(Role.permissions),
                 joinedload(User.clasa),
+                joinedload(User.materie),
                 selectinload(User.legaturi_copii).joinedload(ParentStudent.elev).joinedload(User.clasa),
                 selectinload(User.legaturi_parinti).joinedload(ParentStudent.parinte),
             )
@@ -31,6 +32,7 @@ class AuthRepository:
             .options(
                 joinedload(User.role_rel).selectinload(Role.permissions),
                 joinedload(User.clasa),
+                joinedload(User.materie),
                 selectinload(User.legaturi_copii).joinedload(ParentStudent.elev).joinedload(User.clasa),
                 selectinload(User.legaturi_parinti).joinedload(ParentStudent.parinte),
             )
@@ -75,10 +77,22 @@ class AuthRepository:
             numar_matricol=user_data.numar_matricol,
             telefon=user_data.telefon,
             clasa_id=user_data.clasa_id,
+            materie_id=user_data.materie_id,
             is_active=True,
         )
         db.add(user)
         await db.flush()
+
+        if user_data.rol == UserRole.PROFESOR and user_data.materie_id:
+            classes = (await db.execute(select(SchoolClass))).scalars().all()
+            for sc in classes:
+                assignment = TeacherClassSubject(
+                    profesor_id=user.id_utilizator,
+                    clasa_id=sc.id,
+                    materie_id=user_data.materie_id,
+                )
+                db.add(assignment)
+            await db.flush()
         return await self.get_by_id(db, user.id_utilizator)
 
     async def create_google_user(

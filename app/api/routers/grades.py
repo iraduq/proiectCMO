@@ -12,6 +12,7 @@ from app.db.models import User, UserRole
 from app.dependencies.auth import get_current_user
 from app.repositories.auth_repository import auth_repository
 from app.services.grade_services import grade_service
+from app.services.class_services import class_service
 
 router = APIRouter(prefix="/grades", tags=["Note si situatie scolara"])
 
@@ -67,6 +68,12 @@ async def get_my_academic_overview(
         else:
             from app.exceptions.exceptions import ParentChildLinkError
             raise ParentChildLinkError("Nu aveti niciun elev asociat contului.")
+    elif role == UserRole.PROFESOR.value and not target_id:
+        classes = await class_service.list_classes(db)
+        if classes:
+            st = await class_service.get_class_students(db, classes[0].id)
+            if st:
+                target_id = st[0].id_utilizator
 
     return await grade_service.get_student_academic_overview(db, current_user, target_id)
 

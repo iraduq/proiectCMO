@@ -60,6 +60,10 @@ class GradeService:
         if role not in (UserRole.PROFESOR.value, UserRole.ADMINISTRATOR.value):
             raise UnauthorizedAccessError("Doar profesorii si administratorii pot introduce note.")
 
+        if role == UserRole.PROFESOR.value and current_user.materie_id:
+            if data.materie_id != current_user.materie_id:
+                raise UnauthorizedAccessError("Puteți adăuga note doar la materia dumneavoastră.")
+
         if data.valoare < 1 or data.valoare > 10:
             raise InvalidGradeValueError(data.valoare)
 

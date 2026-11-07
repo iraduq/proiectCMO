@@ -1,22 +1,20 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.api.schemas.edugrade import AbsenceCreate, AbsenceMotivateRequest, AbsenceResponse, AbsenceSummary
+from app.api.schemas.edugrade import (
+    AbsenceCreate,
+    AbsenceResponse,
+    AbsenceSummary,
+    AbsenceMotivateRequest,
+)
 from app.db.database import get_db
 from app.db.models import User, UserRole
 from app.dependencies.auth import get_current_user
 from app.repositories.auth_repository import auth_repository
 from app.services.absence_services import absence_service
+from app.services.class_services import class_service
 
 router = APIRouter(prefix="/absences", tags=["Absente"])
-
-@router.post("", response_model=AbsenceResponse, status_code=status.HTTP_201_CREATED)
-async def add_absence(
-    data: AbsenceCreate,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> AbsenceResponse:
-    return await absence_service.add_absence(db, current_user, data)
 
 @router.get("", response_model=AbsenceSummary)
 async def list_absences(
@@ -36,6 +34,12 @@ async def list_absences(
             target_id = children[0].id_utilizator
         else:
             return AbsenceSummary(total_absente=0, total_motivate=0, total_nemotivate=0, absente=[])
+    elif role == UserRole.PROFESOR.value and not target_id:
+        classes = await class_service.list_classes(db)
+        if classes:
+            st = await class_service.get_class_students(db, classes[0].id)
+            if st:
+                target_id = st[0].id_utilizator
 
     if not target_id:
         target_id = current_user.id_utilizator
@@ -51,7 +55,15 @@ async def get_student_absences(
 ) -> AbsenceSummary:
     return await absence_service.get_student_absences(db, current_user, student_id, subject_id)
 
-@router.patch("/{absence_id}/motivate", response_model=AbsenceResponse)
+@router.post("", response_model=AbsenceResponse, status_code=status.HTTP_201_CREATED)
+async def add_absence(
+    data: AbsenceCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> AbsenceResponse:
+    return await absence_service.add_absence(db, current_user, data)
+
+@router.post("/{absence_id}/motivate", response_model=AbsenceResponse)
 async def motivate_absence(
     absence_id: int,
     data: AbsenceMotivateRequest,

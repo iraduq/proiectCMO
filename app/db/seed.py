@@ -1,5 +1,5 @@
 from datetime import datetime, timezone, timedelta
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models import (
     Absence,
@@ -66,6 +66,20 @@ async def seed_roles_and_permissions(db: AsyncSession) -> dict[str, Role]:
     return roles_by_name
 
 async def seed_all(db: AsyncSession) -> None:
+    if db.bind and db.bind.dialect.name == "sqlite":
+        try:
+            await db.execute(text("ALTER TABLE utilizatori ADD COLUMN materie_id INTEGER REFERENCES materii(id)"))
+            await db.commit()
+        except Exception:
+            await db.rollback()
+
+        try:
+            await db.execute(text("UPDATE utilizatori SET materie_id = (SELECT id FROM materii WHERE cod = 'MATE') WHERE email = 'prof.ionescu@edugrade.ro' AND materie_id IS NULL"))
+            await db.execute(text("UPDATE utilizatori SET materie_id = (SELECT id FROM materii WHERE cod = 'INFO') WHERE email = 'prof.popa@edugrade.ro' AND materie_id IS NULL"))
+            await db.commit()
+        except Exception:
+            await db.rollback()
+
     existing_admin = (await db.execute(select(User).where(User.email == "admin@edugrade.ro"))).scalars().first()
     if existing_admin:
         return
@@ -127,6 +141,10 @@ async def seed_all(db: AsyncSession) -> None:
         Subject(nume="Istorie", cod="IST", descriere="Istoria moderna si contemporana", coeficient_credite=2),
     ]
     db.add_all(materii)
+    await db.flush()
+
+    prof_ionescu.materie_id = materii[0].id
+    prof_popa.materie_id = materii[1].id
     await db.flush()
 
     asocieri = [

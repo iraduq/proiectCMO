@@ -51,6 +51,10 @@ class AbsenceService:
         if role not in (UserRole.PROFESOR.value, UserRole.ADMINISTRATOR.value):
             raise UnauthorizedAccessError("Doar profesorii pot trece absente.")
 
+        if role == UserRole.PROFESOR.value and current_user.materie_id:
+            if data.materie_id != current_user.materie_id:
+                raise UnauthorizedAccessError("Puteți adăuga absențe doar la materia dumneavoastră.")
+
         student = await auth_repository.get_by_id(db, data.elev_id)
         if not student:
             raise UserNotFoundError(f"Elevul cu ID {data.elev_id} nu exista.")

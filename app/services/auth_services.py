@@ -56,6 +56,8 @@ class AuthService:
             role=role_name,
             nume=user.nume,
             email=user.email,
+            materie_id=user.materie_id,
+            materie_nume=user.materie.nume if user.materie else None,
         )
 
     async def register(self, db: AsyncSession, data: RegisterRequest) -> Token:
@@ -85,6 +87,8 @@ class AuthService:
             role=role_name,
             nume=user.nume,
             email=user.email,
+            materie_id=user.materie_id,
+            materie_nume=user.materie.nume if user.materie else None,
         )
 
     async def login_with_google(self, db: AsyncSession, data: GoogleAuthRequest) -> Token:
@@ -137,6 +141,8 @@ class AuthService:
             role=role_name,
             nume=user.nume,
             email=user.email,
+            materie_id=user.materie_id,
+            materie_nume=user.materie.nume if user.materie else None,
         )
 
     async def get_user_profile(self, db: AsyncSession, current_user: User) -> UserProfileResponse:
@@ -176,6 +182,8 @@ class AuthService:
             avatar_url=current_user.avatar_url,
             clasa_id=current_user.clasa_id,
             clasa_nume=clasa_nume,
+            materie_id=current_user.materie_id,
+            materie_nume=current_user.materie.nume if current_user.materie else None,
             is_active=current_user.is_active,
             created_at=current_user.created_at,
             copii=children_summaries,
@@ -212,6 +220,34 @@ class AuthService:
             total_absente=tot_abs,
             total_absente_nemotivate=nemot_abs,
             total_mentiuni=ment_count,
+        )
+
+    async def create_user_by_admin(self, db: AsyncSession, data: RegisterRequest) -> UserResponse:
+        existing = await auth_repository.get_by_email(db, data.email)
+        if existing:
+            raise UserEmailAlreadyExistsError(data.email)
+
+        pwd_hash = get_password_hash(data.password)
+        user = await auth_repository.create(db, data, pwd_hash)
+
+        role_name = user.role_rel.name if user.role_rel else data.rol.value
+        clasa_nume = user.clasa.nume if user.clasa else None
+        materie_nume = user.materie.nume if user.materie else None
+
+        return UserResponse(
+            id_utilizator=user.id_utilizator,
+            nume=user.nume,
+            email=user.email,
+            role=role_name,
+            numar_matricol=user.numar_matricol,
+            telefon=user.telefon,
+            avatar_url=user.avatar_url,
+            clasa_id=user.clasa_id,
+            clasa_nume=clasa_nume,
+            materie_id=user.materie_id,
+            materie_nume=materie_nume,
+            is_active=user.is_active,
+            created_at=user.created_at,
         )
 
 auth_service = AuthService()

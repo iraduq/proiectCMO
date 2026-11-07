@@ -63,6 +63,30 @@ class ClassService:
             for e in (c.elevi or [])
         ]
 
+    async def list_students(self, db: AsyncSession, class_id: int | None = None, query: str | None = None) -> list[UserResponse]:
+        students = await class_repository.list_all_students(db, class_id)
+        results = []
+        q = query.lower().strip() if query else None
+        for e in students:
+            if q and (q not in e.nume.lower() and q not in e.email.lower() and (not e.numar_matricol or q not in e.numar_matricol.lower())):
+                continue
+            results.append(
+                UserResponse(
+                    id_utilizator=e.id_utilizator,
+                    nume=e.nume,
+                    email=e.email,
+                    role=e.role_rel.name if e.role_rel else "ELEV",
+                    numar_matricol=e.numar_matricol,
+                    telefon=e.telefon,
+                    avatar_url=e.avatar_url,
+                    clasa_id=e.clasa_id,
+                    clasa_nume=e.clasa.nume if e.clasa else None,
+                    is_active=e.is_active,
+                    created_at=e.created_at,
+                )
+            )
+        return results
+
     async def create_class(self, db: AsyncSession, current_user: User, data: SchoolClassCreate) -> SchoolClassResponse:
         if current_user.role_rel.name != UserRole.ADMINISTRATOR.value:
             raise UnauthorizedAccessError("Doar administratorii pot crea clase noi.")

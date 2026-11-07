@@ -10,6 +10,8 @@ class Token(BaseModel):
     role: str
     nume: str
     email: str
+    materie_id: Optional[int] = None
+    materie_nume: Optional[str] = None
 
 class LoginRequest(BaseModel):
     email: str = Field(..., json_schema_extra={"example": "elev.andrei@edugrade.ro"})
@@ -27,6 +29,7 @@ class RegisterRequest(BaseModel):
     numar_matricol: Optional[str] = Field(default=None, json_schema_extra={"example": "MAT-10A-042"})
     telefon: Optional[str] = Field(default=None, json_schema_extra={"example": "0722123456"})
     clasa_id: Optional[int] = Field(default=None, description="ID-ul clasei pentru elevi")
+    materie_id: Optional[int] = Field(default=None, description="ID-ul materiei pentru profesori")
 
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -34,6 +37,8 @@ class UserResponse(BaseModel):
     id_utilizator: int
     nume: str
     email: str
+    materie_id: Optional[int] = None
+    materie_nume: Optional[str] = None
     role: str
     numar_matricol: Optional[str] = None
     telefon: Optional[str] = None

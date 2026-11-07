@@ -147,6 +147,7 @@ class User(Base):
     telefon = Column(String(30), nullable=True)
     avatar_url = Column(String(500), nullable=True)
     clasa_id = Column(Integer, ForeignKey("clase.id", ondelete="SET NULL"), nullable=True, index=True)
+    materie_id = Column(Integer, ForeignKey("materii.id", ondelete="SET NULL"), nullable=True, index=True)
     google_id = Column(String(255), unique=True, nullable=True, index=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
@@ -154,6 +155,7 @@ class User(Base):
 
     role_rel = relationship("Role", back_populates="users", lazy="joined")
     clasa = relationship("SchoolClass", foreign_keys=[clasa_id], back_populates="elevi", lazy="joined")
+    materie = relationship("Subject", foreign_keys=[materie_id], lazy="joined")
     clasa_diriginte = relationship("SchoolClass", foreign_keys="[SchoolClass.diriginte_id]", back_populates="diriginte", uselist=False)
 
     legaturi_copii = relationship("ParentStudent", foreign_keys="[ParentStudent.parinte_id]", back_populates="parinte", cascade="all, delete-orphan")

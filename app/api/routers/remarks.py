@@ -7,6 +7,7 @@ from app.db.models import User, UserRole
 from app.dependencies.auth import get_current_user
 from app.repositories.auth_repository import auth_repository
 from app.services.remark_services import remark_service
+from app.services.class_services import class_service
 
 router = APIRouter(prefix="/remarks", tags=["Mentiuni & Aprecieri"])
 
@@ -35,6 +36,12 @@ async def list_remarks(
             target_id = children[0].id_utilizator
         else:
             return []
+    elif role == UserRole.PROFESOR.value and not target_id:
+        classes = await class_service.list_classes(db)
+        if classes:
+            st = await class_service.get_class_students(db, classes[0].id)
+            if st:
+                target_id = st[0].id_utilizator
 
     if not target_id:
         target_id = current_user.id_utilizator

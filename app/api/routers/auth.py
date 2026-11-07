@@ -64,3 +64,15 @@ async def get_my_profile(
 async def logout(response: Response) -> dict[str, str]:
     response.delete_cookie(key="access_token")
     return {"message": "Deconectare reusita."}
+
+@router.post("/admin/create-user", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def admin_create_user(
+    data: RegisterRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> UserResponse:
+    from app.db.models import UserRole
+    from app.exceptions.exceptions import UnauthorizedAccessError
+    if not current_user.role_rel or current_user.role_rel.name != UserRole.ADMINISTRATOR.value:
+        raise UnauthorizedAccessError("Doar administratorul poate crea conturi de utilizator.")
+    return await auth_service.create_user_by_admin(db, data)
