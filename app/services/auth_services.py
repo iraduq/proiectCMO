@@ -1,0 +1,217 @@
+import json
+from typing import Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.api.schemas.edugrade import (
+    ChildSummary,
+    GoogleAuthRequest,
+    LinkChildRequest,
+    LoginRequest,
+    RegisterRequest,
+    Token,
+    UserProfileResponse,
+    UserResponse,
+)
+from app.db.models import ParentStudent, User, UserRole
+from app.exceptions.exceptions import (
+    InvalidCredentialsError,
+    ParentChildLinkError,
+    PasswordValidationError,
+    UnauthorizedAccessError,
+    UserEmailAlreadyExistsError,
+    UserNotFoundError,
+)
+from app.repositories.auth_repository import auth_repository
+from app.repositories.grade_repository import grade_repository
+from app.repositories.absence_repository import absence_repository
+from app.repositories.remark_repository import remark_repository
+from app.utils.security import (
+    create_access_token,
+    get_password_hash,
+    is_password_strong,
+    verify_password,
+)
+
+class AuthService:
+    async def login(self, db: AsyncSession, credentials: LoginRequest) -> Token:
+        user = await auth_repository.get_by_email(db, credentials.email)
+        if not user or not user.is_active:
+            raise InvalidCredentialsError()
+
+        if not verify_password(credentials.password, user.parola_hash):
+            raise InvalidCredentialsError()
+
+        role_name = user.role_rel.name if user.role_rel else "ELEV"
+        access_token = create_access_token(
+            data={
+                "sub": str(user.id_utilizator),
+                "role": role_name,
+                "email": user.email,
+            }
+        )
+
+        return Token(
+            access_token=access_token,
+            token_type="bearer",
+            user_id=user.id_utilizator,
+            role=role_name,
+            nume=user.nume,
+            email=user.email,
+        )
+
+    async def register(self, db: AsyncSession, data: RegisterRequest) -> Token:
+        existing = await auth_repository.get_by_email(db, data.email)
+        if existing:
+            raise UserEmailAlreadyExistsError(data.email)
+
+        if not is_password_strong(data.password):
+            raise PasswordValidationError()
+
+        pwd_hash = get_password_hash(data.password)
+        user = await auth_repository.create(db, data, pwd_hash)
+
+        role_name = user.role_rel.name if user.role_rel else data.rol.value
+        access_token = create_access_token(
+            data={
+                "sub": str(user.id_utilizator),
+                "role": role_name,
+                "email": user.email,
+            }
+        )
+
+        return Token(
+            access_token=access_token,
+            token_type="bearer",
+            user_id=user.id_utilizator,
+            role=role_name,
+            nume=user.nume,
+            email=user.email,
+        )
+
+    async def login_with_google(self, db: AsyncSession, data: GoogleAuthRequest) -> Token:
+        id_token = data.id_token.strip()
+        email = None
+        nume = None
+        google_id = None
+        avatar = None
+
+        if "{" in id_token and "}" in id_token:
+            try:
+                payload = json.loads(id_token)
+                email = payload.get("email")
+                nume = payload.get("name")
+                google_id = payload.get("sub") or payload.get("google_id")
+                avatar = payload.get("picture")
+            except Exception:
+                pass
+
+        if not email:
+            google_id = id_token if len(id_token) < 50 else id_token[:30]
+            email = f"google.{google_id.lower().replace(' ', '_')}@gmail.com"
+            nume = f"Utilizator Google {google_id[:8]}"
+
+        user = await auth_repository.get_by_email(db, email)
+        if not user:
+            role_name = data.role.value if data.role else UserRole.ELEV.value
+            user = await auth_repository.create_google_user(
+                db=db,
+                email=email,
+                nume=nume or "Google User",
+                google_id=google_id,
+                role_name=role_name,
+                avatar_url=avatar,
+            )
+
+        role_name = user.role_rel.name if user.role_rel else UserRole.ELEV.value
+        access_token = create_access_token(
+            data={
+                "sub": str(user.id_utilizator),
+                "role": role_name,
+                "email": user.email,
+            }
+        )
+
+        return Token(
+            access_token=access_token,
+            token_type="bearer",
+            user_id=user.id_utilizator,
+            role=role_name,
+            nume=user.nume,
+            email=user.email,
+        )
+
+    async def get_user_profile(self, db: AsyncSession, current_user: User) -> UserProfileResponse:
+        role_name = current_user.role_rel.name if current_user.role_rel else "ELEV"
+        clasa_nume = current_user.clasa.nume if current_user.clasa else None
+
+        children_summaries: list[ChildSummary] = []
+        if role_name == UserRole.PARINTE.value:
+            children = await auth_repository.get_children_for_parent(db, current_user.id_utilizator)
+            for child in children:
+                avg = await grade_repository.calculate_student_overall_average(db, child.id_utilizator)
+                tot_abs, mot_abs, nemot_abs = await absence_repository.count_by_student(db, child.id_utilizator)
+                ment_count = await remark_repository.count_by_student(db, child.id_utilizator)
+                children_summaries.append(
+                    ChildSummary(
+                        id_utilizator=child.id_utilizator,
+                        nume=child.nume,
+                        email=child.email,
+                        numar_matricol=child.numar_matricol,
+                        clasa_id=child.clasa_id,
+                        clasa_nume=child.clasa.nume if child.clasa else None,
+                        relatie="Copil",
+                        medie_generala=avg,
+                        total_absente=tot_abs,
+                        total_absente_nemotivate=nemot_abs,
+                        total_mentiuni=ment_count,
+                    )
+                )
+
+        return UserProfileResponse(
+            id_utilizator=current_user.id_utilizator,
+            nume=current_user.nume,
+            email=current_user.email,
+            role=role_name,
+            numar_matricol=current_user.numar_matricol,
+            telefon=current_user.telefon,
+            avatar_url=current_user.avatar_url,
+            clasa_id=current_user.clasa_id,
+            clasa_nume=clasa_nume,
+            is_active=current_user.is_active,
+            created_at=current_user.created_at,
+            copii=children_summaries,
+        )
+
+    async def link_child_to_parent(
+        self,
+        db: AsyncSession,
+        parent: User,
+        data: LinkChildRequest,
+    ) -> ChildSummary:
+        if parent.role_rel.name != UserRole.PARINTE.value and parent.role_rel.name != UserRole.ADMINISTRATOR.value:
+            raise UnauthorizedAccessError("Doar conturile de parinte pot asocia elevi.")
+
+        student = await auth_repository.get_by_matricol(db, data.numar_matricol)
+        if not student:
+            raise UserNotFoundError(f"Elevul cu numarul matricol '{data.numar_matricol}' nu a fost gasit.")
+
+        await auth_repository.link_parent_student(db, parent.id_utilizator, student.id_utilizator, data.relatie)
+
+        avg = await grade_repository.calculate_student_overall_average(db, student.id_utilizator)
+        tot_abs, mot_abs, nemot_abs = await absence_repository.count_by_student(db, student.id_utilizator)
+        ment_count = await remark_repository.count_by_student(db, student.id_utilizator)
+
+        return ChildSummary(
+            id_utilizator=student.id_utilizator,
+            nume=student.nume,
+            email=student.email,
+            numar_matricol=student.numar_matricol,
+            clasa_id=student.clasa_id,
+            clasa_nume=student.clasa.nume if student.clasa else None,
+            relatie=data.relatie,
+            medie_generala=avg,
+            total_absente=tot_abs,
+            total_absente_nemotivate=nemot_abs,
+            total_mentiuni=ment_count,
+        )
+
+auth_service = AuthService()
