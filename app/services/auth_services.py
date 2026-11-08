@@ -102,6 +102,21 @@ class AuthService:
 
         if id_token.count(".") == 2:
             try:
+                import httpx
+                url = f"https://oauth2.googleapis.com/tokeninfo?id_token={id_token}"
+                async with httpx.AsyncClient(timeout=8.0) as client:
+                    resp = await client.get(url)
+                    if resp.status_code == 200:
+                        google_payload = resp.json()
+                        email = google_payload.get("email")
+                        nume = google_payload.get("name")
+                        google_id = google_payload.get("sub")
+                        avatar = google_payload.get("picture")
+            except Exception:
+                pass
+
+        if not email and id_token.count(".") == 2:
+            try:
                 part = id_token.split(".")[1]
                 padded = part + "=" * ((4 - len(part) % 4) % 4)
                 payload = json.loads(base64.urlsafe_b64decode(padded).decode("utf-8"))
@@ -136,13 +151,18 @@ class AuthService:
             parts = email.split("@")[0].replace(".", " ").replace("_", " ").replace("-", " ").split()
             nume = " ".join(p.capitalize() for p in parts)
         if not google_id:
-            google_id = email
+            google_id = f"usv_google_{abs(hash(email)) % 10000000000}"
 
         user = await auth_repository.get_by_email(db, email)
-        if user and user.nume in ("Google User", "Utilizator Google") and nume != user.nume:
-            user.nume = nume
+        if user:
+            if google_id and (not user.google_id or user.google_id.startswith("usv_google_")):
+                user.google_id = google_id
+            if nume and (not user.nume or user.nume in ("Google User", "Utilizator Google")):
+                user.nume = nume
+            if avatar and not user.avatar_url:
+                user.avatar_url = avatar
             await db.flush()
-        if not user:
+        else:
             role_name = UserRole.ELEV.value
             user = await auth_repository.create_google_user(
                 db=db,

@@ -1,3 +1,4 @@
+import secrets
 from typing import Optional, Sequence
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -122,7 +123,7 @@ class AuthRepository:
         user = User(
             nume=nume,
             email=email.lower().strip(),
-            parola_hash="GOOGLE_OAUTH_ACCOUNT",
+            parola_hash=f"oauth2_google_{secrets.token_hex(20)}",
             role_id=role.id,
             numar_matricol=numar_matricol,
             clasa_id=clasa_id,

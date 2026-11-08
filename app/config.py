@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -11,6 +12,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = Field(default=1440)
     environment: str = Field(default="development")
     cors_origins: list[str] = Field(default=["*"])
+    google_client_id: Optional[str] = Field(default=None)
 
     @field_validator("database_url", mode="before")
     @classmethod
