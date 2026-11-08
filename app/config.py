@@ -12,7 +12,8 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = Field(default=1440)
     environment: str = Field(default="development")
     cors_origins: list[str] = Field(default=["*"])
-    google_client_id: Optional[str] = Field(default=None)
+    google_client_id: Optional[str] = Field(default="410501815287-drt4c6ll5dk5v8rrr0sbmur2ptlq4of8.apps.googleusercontent.com")
+    google_client_secret: Optional[str] = Field(default=None)
 
     @field_validator("database_url", mode="before")
     @classmethod

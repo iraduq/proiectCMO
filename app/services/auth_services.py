@@ -102,6 +102,20 @@ class AuthService:
 
         if id_token.count(".") == 2:
             try:
+                from google.oauth2 import id_token as google_id_token
+                from google.auth.transport import requests as google_requests
+                req = google_requests.Request()
+                target_client_id = settings.google_client_id or "410501815287-drt4c6ll5dk5v8rrr0sbmur2ptlq4of8.apps.googleusercontent.com"
+                google_payload = google_id_token.verify_oauth2_token(id_token, req, target_client_id)
+                email = google_payload.get("email")
+                nume = google_payload.get("name")
+                google_id = google_payload.get("sub")
+                avatar = google_payload.get("picture")
+            except Exception:
+                pass
+
+        if not email and id_token.count(".") == 2:
+            try:
                 import httpx
                 url = f"https://oauth2.googleapis.com/tokeninfo?id_token={id_token}"
                 async with httpx.AsyncClient(timeout=8.0) as client:
