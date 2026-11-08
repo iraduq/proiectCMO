@@ -132,13 +132,16 @@ class AuthService:
             )
 
         email = email.lower().strip()
-        if not nume:
-            parts = email.split("@")[0].replace(".", " ").replace("_", " ").split()
+        if not nume or nume.lower() in ("google user", "utilizator google", "null", "none"):
+            parts = email.split("@")[0].replace(".", " ").replace("_", " ").replace("-", " ").split()
             nume = " ".join(p.capitalize() for p in parts)
         if not google_id:
             google_id = email
 
         user = await auth_repository.get_by_email(db, email)
+        if user and user.nume in ("Google User", "Utilizator Google") and nume != user.nume:
+            user.nume = nume
+            await db.flush()
         if not user:
             role_name = UserRole.ELEV.value
             user = await auth_repository.create_google_user(

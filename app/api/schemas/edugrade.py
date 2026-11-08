@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Any, Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.db.models import EvaluationType, NotificationType, RemarkType, UserRole
 
 class Token(BaseModel):
@@ -20,6 +20,15 @@ class LoginRequest(BaseModel):
 class GoogleAuthRequest(BaseModel):
     id_token: str = Field(..., description="Google OAuth2 ID Token din Android Google Sign-In SDK")
     role: Optional[UserRole] = Field(default=UserRole.ELEV, description="Rolul dorit daca este cont nou")
+
+    @field_validator("role", mode="before")
+    @classmethod
+    def normalize_role(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            v_upper = v.upper()
+            if v_upper in UserRole.__members__:
+                return UserRole[v_upper]
+        return v
 
 class RegisterRequest(BaseModel):
     nume: str = Field(..., min_length=3, max_length=100, json_schema_extra={"example": "Andrei Popescu"})
