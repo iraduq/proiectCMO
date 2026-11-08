@@ -1,5 +1,7 @@
+import base64
 import json
 from typing import Optional
+from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.schemas.edugrade import (
     ChildSummary,
@@ -98,7 +100,19 @@ class AuthService:
         google_id = None
         avatar = None
 
-        if "{" in id_token and "}" in id_token:
+        if id_token.count(".") == 2:
+            try:
+                part = id_token.split(".")[1]
+                padded = part + "=" * ((4 - len(part) % 4) % 4)
+                payload = json.loads(base64.urlsafe_b64decode(padded).decode("utf-8"))
+                email = payload.get("email")
+                nume = payload.get("name")
+                google_id = payload.get("sub")
+                avatar = payload.get("picture")
+            except Exception:
+                pass
+
+        if not email and "{" in id_token and "}" in id_token:
             try:
                 payload = json.loads(id_token)
                 email = payload.get("email")
@@ -108,18 +122,29 @@ class AuthService:
             except Exception:
                 pass
 
-        if not email:
-            google_id = id_token if len(id_token) < 50 else id_token[:30]
-            email = f"google.{google_id.lower().replace(' ', '_')}@gmail.com"
-            nume = f"Utilizator Google {google_id[:8]}"
+        if not email and "@" in id_token:
+            email = id_token.strip().lower()
+
+        if not email or not email.lower().strip().endswith("@student.usv.ro"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Autentificarea cu Google este permisa doar cu adrese educationale @student.usv.ro",
+            )
+
+        email = email.lower().strip()
+        if not nume:
+            parts = email.split("@")[0].replace(".", " ").replace("_", " ").split()
+            nume = " ".join(p.capitalize() for p in parts)
+        if not google_id:
+            google_id = email
 
         user = await auth_repository.get_by_email(db, email)
         if not user:
-            role_name = data.role.value if data.role else UserRole.ELEV.value
+            role_name = UserRole.ELEV.value
             user = await auth_repository.create_google_user(
                 db=db,
                 email=email,
-                nume=nume or "Google User",
+                nume=nume,
                 google_id=google_id,
                 role_name=role_name,
                 avatar_url=avatar,

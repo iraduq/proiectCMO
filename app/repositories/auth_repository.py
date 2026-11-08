@@ -110,11 +110,22 @@ class AuthRepository:
             db.add(role)
             await db.flush()
 
+        clasa_id = None
+        numar_matricol = None
+        if role_name == UserRole.ELEV.value:
+            res = await db.execute(select(SchoolClass.id).limit(1))
+            first_class = res.scalar_one_or_none()
+            if first_class:
+                clasa_id = first_class
+            numar_matricol = f"USV-{abs(hash(email)) % 100000:05d}"
+
         user = User(
             nume=nume,
             email=email.lower().strip(),
             parola_hash="GOOGLE_OAUTH_ACCOUNT",
             role_id=role.id,
+            numar_matricol=numar_matricol,
+            clasa_id=clasa_id,
             google_id=google_id,
             avatar_url=avatar_url,
             is_active=True,
