@@ -141,7 +141,7 @@ class User(Base):
     id_utilizator = Column(Integer, primary_key=True, index=True, autoincrement=True)
     nume = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, index=True, nullable=False)
-    parola_hash = Column(String(255), nullable=False)
+    parola_hash = Column(String(255), nullable=True)
     role_id = Column(Integer, ForeignKey("roles.id"), nullable=False)
     numar_matricol = Column(String(100), unique=True, nullable=True, index=True)
     telefon = Column(String(30), nullable=True)

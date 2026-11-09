@@ -123,7 +123,7 @@ class AuthRepository:
         user = User(
             nume=nume,
             email=email.lower().strip(),
-            parola_hash=f"oauth2_google_{secrets.token_hex(20)}",
+            parola_hash=None,
             role_id=role.id,
             numar_matricol=numar_matricol,
             clasa_id=clasa_id,
