@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import json
 from typing import Optional
 from fastapi import HTTPException, status
@@ -164,12 +165,13 @@ class AuthService:
         if not nume or nume.lower() in ("google user", "utilizator google", "null", "none"):
             parts = email.split("@")[0].replace(".", " ").replace("_", " ").replace("-", " ").split()
             nume = " ".join(p.capitalize() for p in parts)
-        if not google_id:
-            google_id = f"usv_google_{abs(hash(email)) % 10000000000}"
+        if not google_id or "@" in str(google_id) or str(google_id).startswith("usv_google_"):
+            seed = int(hashlib.sha256(email.encode("utf-8")).hexdigest(), 16)
+            google_id = f"10{seed % 10000000000000000000:019d}"
 
         user = await auth_repository.get_by_email(db, email)
         if user:
-            if google_id and (not user.google_id or user.google_id.startswith("usv_google_")):
+            if google_id and (not user.google_id or "@" in str(user.google_id) or user.google_id.startswith("usv_google_")):
                 user.google_id = google_id
             if nume and (not user.nume or user.nume in ("Google User", "Utilizator Google")):
                 user.nume = nume
