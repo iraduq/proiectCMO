@@ -114,10 +114,6 @@ class AuthRepository:
         clasa_id = None
         numar_matricol = None
         if role_name == UserRole.ELEV.value:
-            res = await db.execute(select(SchoolClass.id).limit(1))
-            first_class = res.scalar_one_or_none()
-            if first_class:
-                clasa_id = first_class
             numar_matricol = f"USV-{abs(hash(email)) % 100000:05d}"
 
         user = User(
