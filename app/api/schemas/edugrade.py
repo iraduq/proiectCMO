@@ -40,6 +40,16 @@ class RegisterRequest(BaseModel):
     clasa_id: Optional[int] = Field(default=None, description="ID-ul clasei pentru elevi")
     materie_id: Optional[int] = Field(default=None, description="ID-ul materiei pentru profesori")
 
+class UserUpdateRequest(BaseModel):
+    nume: Optional[str] = Field(default=None)
+    email: Optional[str] = Field(default=None)
+    numar_matricol: Optional[str] = Field(default=None)
+    telefon: Optional[str] = Field(default=None)
+    clasa_id: Optional[int] = Field(default=None)
+    materie_id: Optional[int] = Field(default=None)
+    role_id: Optional[int] = Field(default=None)
+    is_active: Optional[bool] = Field(default=None)
+
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

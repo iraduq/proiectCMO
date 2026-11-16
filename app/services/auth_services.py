@@ -13,6 +13,7 @@ from app.api.schemas.edugrade import (
     Token,
     UserProfileResponse,
     UserResponse,
+    UserUpdateRequest,
 )
 from app.db.models import ParentStudent, User, UserRole
 from app.exceptions.exceptions import (
@@ -312,6 +313,54 @@ class AuthService:
             materie_nume=materie_nume,
             is_active=user.is_active,
             created_at=user.created_at,
+        )
+
+    async def update_user_by_admin(self, db: AsyncSession, user_id: int, data: UserUpdateRequest) -> UserResponse:
+        user = await auth_repository.get_by_id(db, user_id)
+        if not user:
+            raise UserNotFoundError(f"Utilizatorul cu ID {user_id} nu a fost gasit.")
+
+        if data.nume is not None and data.nume.strip():
+            user.nume = data.nume.strip()
+        if data.email is not None and data.email.strip():
+            email_clean = data.email.strip().lower()
+            if email_clean != user.email:
+                existing = await auth_repository.get_by_email(db, email_clean)
+                if existing:
+                    raise UserEmailAlreadyExistsError(email_clean)
+                user.email = email_clean
+        if data.numar_matricol is not None:
+            user.numar_matricol = data.numar_matricol.strip() if data.numar_matricol.strip() else None
+        if data.telefon is not None:
+            user.telefon = data.telefon.strip() if data.telefon.strip() else None
+        if data.clasa_id is not None:
+            user.clasa_id = data.clasa_id if data.clasa_id > 0 else None
+        if data.materie_id is not None:
+            user.materie_id = data.materie_id if data.materie_id > 0 else None
+        if data.is_active is not None:
+            user.is_active = data.is_active
+
+        await db.commit()
+        refreshed_user = await auth_repository.get_by_id(db, user_id)
+
+        role_name = refreshed_user.role_rel.name if refreshed_user.role_rel else "ELEV"
+        clasa_nume = refreshed_user.clasa.nume if refreshed_user.clasa else None
+        materie_nume = refreshed_user.materie.nume if refreshed_user.materie else None
+
+        return UserResponse(
+            id_utilizator=refreshed_user.id_utilizator,
+            nume=refreshed_user.nume,
+            email=refreshed_user.email,
+            role=role_name,
+            numar_matricol=refreshed_user.numar_matricol,
+            telefon=refreshed_user.telefon,
+            avatar_url=refreshed_user.avatar_url,
+            clasa_id=refreshed_user.clasa_id,
+            clasa_nume=clasa_nume,
+            materie_id=refreshed_user.materie_id,
+            materie_nume=materie_nume,
+            is_active=refreshed_user.is_active,
+            created_at=refreshed_user.created_at,
         )
 
 auth_service = AuthService()

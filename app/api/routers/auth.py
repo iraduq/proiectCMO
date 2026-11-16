@@ -8,6 +8,7 @@ from app.api.schemas.edugrade import (
     Token,
     UserProfileResponse,
     UserResponse,
+    UserUpdateRequest,
 )
 from app.db.database import get_db
 from app.db.models import User
@@ -76,3 +77,16 @@ async def admin_create_user(
     if not current_user.role_rel or current_user.role_rel.name != UserRole.ADMINISTRATOR.value:
         raise UnauthorizedAccessError("Doar administratorul poate crea conturi de utilizator.")
     return await auth_service.create_user_by_admin(db, data)
+
+@router.put("/admin/users/{user_id}", response_model=UserResponse)
+async def admin_update_user(
+    user_id: int,
+    data: UserUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> UserResponse:
+    from app.db.models import UserRole
+    from app.exceptions.exceptions import UnauthorizedAccessError
+    if not current_user.role_rel or current_user.role_rel.name != UserRole.ADMINISTRATOR.value:
+        raise UnauthorizedAccessError("Doar administratorul poate modifica elevii si utilizatorii.")
+    return await auth_service.update_user_by_admin(db, user_id, data)
