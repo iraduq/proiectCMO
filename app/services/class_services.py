@@ -119,6 +119,21 @@ class ClassService:
         if current_user.role_rel.name != UserRole.ADMINISTRATOR.value:
             raise UnauthorizedAccessError("Doar administratorii pot adauga materii noi.")
         created = await class_repository.create_subject(db, data)
+        if data.profesor_id:
+            from app.repositories.auth_repository import auth_repository
+            teacher = await auth_repository.get_by_id(db, data.profesor_id)
+            if teacher:
+                teacher.materie_id = created.id
+                await db.commit()
+                if data.clasa_id:
+                    await class_repository.assign_teacher(
+                        db,
+                        TeacherAssignmentCreate(
+                            profesor_id=data.profesor_id,
+                            clasa_id=data.clasa_id,
+                            materie_id=created.id,
+                        )
+                    )
         return SubjectResponse(
             id=created.id,
             nume=created.nume,
@@ -127,6 +142,27 @@ class ClassService:
             coeficient_credite=created.coeficient_credite,
             is_active=created.is_active,
         )
+
+    async def list_teachers(self, db: AsyncSession) -> list[UserResponse]:
+        teachers = await class_repository.list_all_teachers(db)
+        return [
+            UserResponse(
+                id_utilizator=t.id_utilizator,
+                nume=t.nume,
+                email=t.email,
+                role=t.role_rel.name if t.role_rel else "PROFESOR",
+                numar_matricol=t.numar_matricol,
+                telefon=t.telefon,
+                avatar_url=t.avatar_url,
+                clasa_id=t.clasa_id,
+                clasa_nume=t.clasa.nume if t.clasa else None,
+                materie_id=t.materie_id,
+                materie_nume=t.materie.nume if t.materie else None,
+                is_active=t.is_active,
+                created_at=t.created_at,
+            )
+            for t in teachers
+        ]
 
     async def assign_teacher(
         self,

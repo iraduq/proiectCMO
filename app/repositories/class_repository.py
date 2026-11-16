@@ -3,7 +3,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 from app.api.schemas.edugrade import SchoolClassCreate, SubjectCreate, TeacherAssignmentCreate
-from app.db.models import SchoolClass, Subject, TeacherClassSubject, User
+from app.db.models import Role, SchoolClass, Subject, TeacherClassSubject, User, UserRole
 
 class ClassRepository:
     async def get_class_by_id(self, db: AsyncSession, class_id: int) -> Optional[SchoolClass]:
@@ -34,11 +34,12 @@ class ClassRepository:
     async def list_all_students(self, db: AsyncSession, class_id: Optional[int] = None) -> Sequence[User]:
         stmt = (
             select(User)
+            .join(User.role_rel)
             .options(
                 joinedload(User.clasa),
                 joinedload(User.role_rel),
             )
-            .where(User.clasa_id.is_not(None), User.is_active == True)
+            .where(Role.name == UserRole.ELEV.value, User.is_active == True)
         )
         if class_id:
             stmt = stmt.where(User.clasa_id == class_id)
@@ -114,6 +115,20 @@ class ClassRepository:
                 joinedload(TeacherClassSubject.materie),
             )
             .where(TeacherClassSubject.profesor_id == teacher_id)
+        )
+        result = await db.execute(stmt)
+        return result.scalars().all()
+
+    async def list_all_teachers(self, db: AsyncSession) -> Sequence[User]:
+        stmt = (
+            select(User)
+            .join(User.role_rel)
+            .options(
+                joinedload(User.materie),
+                joinedload(User.role_rel),
+            )
+            .where(Role.name == UserRole.PROFESOR.value, User.is_active == True)
+            .order_by(User.nume.asc())
         )
         result = await db.execute(stmt)
         return result.scalars().all()

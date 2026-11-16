@@ -48,6 +48,13 @@ async def get_class_students(
 ) -> list[UserResponse]:
     return await class_service.get_class_students(db, class_id)
 
+@router.get("/teachers", response_model=list[UserResponse])
+async def list_teachers(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[UserResponse]:
+    return await class_service.list_teachers(db)
+
 @router.post("/classes", response_model=SchoolClassResponse, status_code=status.HTTP_201_CREATED)
 async def create_class(
     data: SchoolClassCreate,

@@ -105,6 +105,8 @@ class SubjectCreate(BaseModel):
     cod: str = Field(..., min_length=2, max_length=20, json_schema_extra={"example": "MATE"})
     descriere: Optional[str] = None
     coeficient_credite: int = Field(default=1, ge=1, le=10)
+    profesor_id: Optional[int] = None
+    clasa_id: Optional[int] = None
 
 class SubjectResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
