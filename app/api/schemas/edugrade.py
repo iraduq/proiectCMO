@@ -102,7 +102,7 @@ class SchoolClassResponse(BaseModel):
 
 class SubjectCreate(BaseModel):
     nume: str = Field(..., min_length=2, max_length=100, json_schema_extra={"example": "Matematica"})
-    cod: str = Field(..., min_length=2, max_length=20, json_schema_extra={"example": "MATE"})
+    cod: Optional[str] = Field(default=None, max_length=20)
     descriere: Optional[str] = None
     coeficient_credite: int = Field(default=1, ge=1, le=10)
     profesor_id: Optional[int] = None

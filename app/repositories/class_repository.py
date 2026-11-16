@@ -75,11 +75,12 @@ class ClassRepository:
         return result.scalars().all()
 
     async def create_subject(self, db: AsyncSession, data: SubjectCreate) -> Subject:
+        generated_code = (data.cod if data.cod else data.nume[:6].replace(" ", "")).upper()
         subject = Subject(
             nume=data.nume,
-            cod=data.cod.upper(),
+            cod=generated_code,
             descriere=data.descriere,
-            coeficient_credite=data.coeficient_credite,
+            coeficient_credite=data.coeficient_credite if data.coeficient_credite else 1,
             is_active=True,
         )
         db.add(subject)
