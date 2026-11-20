@@ -223,3 +223,11 @@ class InvalidSubjectNameError(AppException):
             status_code=status.HTTP_400_BAD_REQUEST,
             code="invalid_subject_name",
         )
+
+class InvalidSchoolYearFormatError(AppException):
+    def __init__(self, detail: str = "Anul scolar trebuie sa respecte formatul AAAA-AAAA (ex: 2025-2026).") -> None:
+        super().__init__(
+            message=detail,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code="invalid_school_year_format",
+        )

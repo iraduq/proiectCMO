@@ -12,6 +12,7 @@ from app.db.models import User, UserRole
 from app.exceptions.exceptions import (
     ClassNotFoundError,
     InvalidClassNameError,
+    InvalidSchoolYearFormatError,
     InvalidSpecializationError,
     InvalidSubjectNameError,
     RequestValidationError,
@@ -102,6 +103,19 @@ class ClassService:
             raise InvalidClassNameError()
         if not data.specializare or len(data.specializare.strip()) < 3:
             raise InvalidSpecializationError("Specializarea clasei este obligatorie (minim 3 caractere, ex: Matematica-Informatica).")
+
+        import re
+        school_year = data.an_scolar.strip() if data.an_scolar else ""
+        if not school_year or not re.match(r"^\d{4}-\d{4}$", school_year):
+            raise InvalidSchoolYearFormatError()
+        parts = school_year.split("-")
+        y1, y2 = int(parts[0]), int(parts[1])
+        if y2 != y1 + 1:
+            raise InvalidSchoolYearFormatError("Anul scolar trebuie sa cuprinda doi ani consecutivi (ex: 2025-2026).")
+
+        data.nume = data.nume.strip()
+        data.specializare = data.specializare.strip()
+        data.an_scolar = school_year
         created = await class_repository.create_class(db, data)
         return SchoolClassResponse(
             id=created.id,
