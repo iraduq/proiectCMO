@@ -340,17 +340,32 @@ class AuthService:
         if not user:
             raise UserNotFoundError(f"Utilizatorul cu ID {user_id} nu a fost gasit.")
 
-        if data.nume is not None and data.nume.strip():
-            user.nume = data.nume.strip()
-        if data.email is not None and data.email.strip():
+        if data.nume is not None:
+            name_clean = data.nume.strip()
+            if len(name_clean) < 3 or len(name_clean.split()) < 2:
+                raise InvalidFullNameError()
+            user.nume = name_clean
+
+        if data.email is not None:
             email_clean = data.email.strip().lower()
+            import re
+            if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", email_clean):
+                raise InvalidEmailFormatError(email_clean)
             if email_clean != user.email:
                 existing = await auth_repository.get_by_email(db, email_clean)
                 if existing:
                     raise UserEmailAlreadyExistsError(email_clean)
                 user.email = email_clean
+
         if data.numar_matricol is not None:
-            user.numar_matricol = data.numar_matricol.strip() if data.numar_matricol.strip() else None
+            matricol_clean = data.numar_matricol.strip()
+            if matricol_clean:
+                if len(matricol_clean) < 3:
+                    raise InvalidMatricolError()
+                user.numar_matricol = matricol_clean
+            else:
+                user.numar_matricol = None
+
         if data.telefon is not None:
             user.telefon = data.telefon.strip() if data.telefon.strip() else None
         if data.clasa_id is not None:

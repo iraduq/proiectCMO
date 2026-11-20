@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.schemas.edugrade import RemarkCreate, RemarkResponse
 from app.db.models import NotificationType, User, UserRole
 from app.exceptions.exceptions import (
+    InvalidRemarkError,
     ParentChildLinkError,
     RemarkNotFoundError,
     UnauthorizedAccessError,
@@ -45,6 +46,9 @@ class RemarkService:
         role = current_user.role_rel.name if current_user.role_rel else ""
         if role not in (UserRole.PROFESOR.value, UserRole.ADMINISTRATOR.value):
             raise UnauthorizedAccessError("Doar cadrele didactice pot acorda mentiuni sau observatii.")
+
+        if not data.titlu or len(data.titlu.strip()) < 3 or not data.descriere or len(data.descriere.strip()) < 5:
+            raise InvalidRemarkError()
 
         student = await auth_repository.get_by_id(db, data.elev_id)
         if not student:

@@ -167,3 +167,43 @@ class InvalidMatricolError(AppException):
             status_code=status.HTTP_400_BAD_REQUEST,
             code="invalid_matricol",
         )
+
+class InvalidEvaluationTypeError(AppException):
+    def __init__(self) -> None:
+        super().__init__(
+            message="Tipul evaluarii este obligatoriu (ex: Oral, Test, Teza, Proiect).",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code="invalid_evaluation_type",
+        )
+
+class InvalidAbsenceReasonError(AppException):
+    def __init__(self, detail: str = "Motivul motivarii absentei este obligatoriu (minim 3 caractere).") -> None:
+        super().__init__(
+            message=detail,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code="invalid_absence_reason",
+        )
+
+class InvalidRemarkError(AppException):
+    def __init__(self, detail: str = "Titlul (minim 3 caractere) si descrierea (minim 5 caractere) sunt obligatorii.") -> None:
+        super().__init__(
+            message=detail,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code="invalid_remark_data",
+        )
+
+class InvalidClassNameError(AppException):
+    def __init__(self, detail: str = "Numele clasei este obligatoriu (minim 3 caractere, ex: Clasa a IX-a A).") -> None:
+        super().__init__(
+            message=detail,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code="invalid_class_name",
+        )
+
+class InvalidSubjectNameError(AppException):
+    def __init__(self, detail: str = "Denumirea materiei este obligatorie (minim 3 caractere, ex: Matematica).") -> None:
+        super().__init__(
+            message=detail,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code="invalid_subject_name",
+        )

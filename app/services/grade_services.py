@@ -10,6 +10,7 @@ from app.api.schemas.edugrade import (
 from app.db.models import NotificationType, User, UserRole
 from app.exceptions.exceptions import (
     GradeNotFoundError,
+    InvalidEvaluationTypeError,
     InvalidGradeValueError,
     ParentChildLinkError,
     SubjectNotFoundError,
@@ -66,6 +67,9 @@ class GradeService:
 
         if data.valoare < 1 or data.valoare > 10:
             raise InvalidGradeValueError(data.valoare)
+
+        if not data.tip_evaluare or len(data.tip_evaluare.strip()) < 2:
+            raise InvalidEvaluationTypeError()
 
         student = await auth_repository.get_by_id(db, data.elev_id)
         if not student:

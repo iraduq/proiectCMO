@@ -11,7 +11,9 @@ from app.api.schemas.edugrade import (
 from app.db.models import User, UserRole
 from app.exceptions.exceptions import (
     ClassNotFoundError,
+    InvalidClassNameError,
     InvalidSpecializationError,
+    InvalidSubjectNameError,
     RequestValidationError,
     SubjectNotFoundError,
     UnauthorizedAccessError,
@@ -97,7 +99,7 @@ class ClassService:
         if current_user.role_rel.name != UserRole.ADMINISTRATOR.value:
             raise UnauthorizedAccessError("Doar administratorii pot crea clase noi.")
         if not data.nume or len(data.nume.strip()) < 3:
-            raise RequestValidationError([{"field": "nume", "message": "Numele clasei este obligatoriu (minim 3 caractere, ex: Clasa a IX-a A)."}])
+            raise InvalidClassNameError()
         if not data.specializare or len(data.specializare.strip()) < 3:
             raise InvalidSpecializationError("Specializarea clasei este obligatorie (minim 3 caractere, ex: Matematica-Informatica).")
         created = await class_repository.create_class(db, data)
@@ -129,7 +131,7 @@ class ClassService:
         if current_user.role_rel.name != UserRole.ADMINISTRATOR.value:
             raise UnauthorizedAccessError("Doar administratorii pot adauga materii noi.")
         if not data.nume or len(data.nume.strip()) < 3:
-            raise RequestValidationError([{"field": "nume", "message": "Denumirea materiei este obligatorie (minim 3 caractere, ex: Matematica)."}])
+            raise InvalidSubjectNameError()
         if not data.descriere or len(data.descriere.strip()) < 3:
             raise InvalidSpecializationError("Specializarea / Profilul materiei este obligatorie (minim 3 caractere, ex: Real, Uman, Stiinte).")
         created = await class_repository.create_subject(db, data)

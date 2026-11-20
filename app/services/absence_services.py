@@ -4,6 +4,7 @@ from app.api.schemas.edugrade import AbsenceCreate, AbsenceMotivateRequest, Abse
 from app.db.models import NotificationType, User, UserRole
 from app.exceptions.exceptions import (
     AbsenceNotFoundError,
+    InvalidAbsenceReasonError,
     ParentChildLinkError,
     SubjectNotFoundError,
     UnauthorizedAccessError,
@@ -100,6 +101,9 @@ class AbsenceService:
         absence = await absence_repository.get_by_id(db, absence_id)
         if not absence:
             raise AbsenceNotFoundError(absence_id)
+
+        if data.este_motivata and (not data.motiv or len(data.motiv.strip()) < 3):
+            raise InvalidAbsenceReasonError()
 
         updated = await absence_repository.motivate(db, absence, data.este_motivata, data.motiv)
 
