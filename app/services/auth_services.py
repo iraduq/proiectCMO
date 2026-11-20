@@ -23,6 +23,8 @@ from app.exceptions.exceptions import (
     InvalidMatricolError,
     ParentChildLinkError,
     PasswordValidationError,
+    RoleNotSelectedError,
+    SubjectNotSelectedError,
     UnauthorizedAccessError,
     UserEmailAlreadyExistsError,
     UserNotFoundError,
@@ -68,14 +70,38 @@ class AuthService:
         )
 
     async def register(self, db: AsyncSession, data: RegisterRequest) -> Token:
-        existing = await auth_repository.get_by_email(db, data.email)
+        import re
+        email = data.email.strip().lower() if data.email else ""
+        if not email or not re.match(r"^[\w\.-]+@[\w\.-]+\.[a-zA-Z]{2,}$", email):
+            raise InvalidEmailFormatError(email)
+
+        name = data.nume.strip() if data.nume else ""
+        if not name or len(name) < 3:
+            raise InvalidFullNameError("Numele complet este obligatoriu și trebuie să aibă minim 3 caractere.")
+        if any(ch.isdigit() for ch in name):
+            raise InvalidFullNameError("Numele complet nu poate conține cifre. Introduceți doar litere (ex: Popescu Ion).")
+        if len(name.split()) < 2:
+            raise InvalidFullNameError("Numele complet trebuie să conțină atât numele de familie, cât și prenumele.")
+
+        if not data.rol:
+            raise RoleNotSelectedError()
+
+        if data.rol == UserRole.PROFESOR and (not data.materie_id or data.materie_id <= 0):
+            raise SubjectNotSelectedError("Selectarea unei materii este obligatorie pentru cadrele didactice.")
+
+        if data.rol == UserRole.ELEV and (not data.numar_matricol or len(data.numar_matricol.strip()) < 3):
+            raise InvalidMatricolError()
+
+        existing = await auth_repository.get_by_email(db, email)
         if existing:
-            raise UserEmailAlreadyExistsError(data.email)
+            raise UserEmailAlreadyExistsError(email)
 
         if not is_password_strong(data.password):
             raise PasswordValidationError()
 
         pwd_hash = get_password_hash(data.password)
+        data.email = email
+        data.nume = name
         user = await auth_repository.create(db, data, pwd_hash)
 
         role_name = user.role_rel.name if user.role_rel else data.rol.value
@@ -293,15 +319,25 @@ class AuthService:
     async def create_user_by_admin(self, db: AsyncSession, data: RegisterRequest) -> UserResponse:
         import re
         email = data.email.strip().lower() if data.email else ""
-        if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", email):
+        if not email or not re.match(r"^[\w\.-]+@[\w\.-]+\.[a-zA-Z]{2,}$", email):
             raise InvalidEmailFormatError(email)
 
         name = data.nume.strip() if data.nume else ""
-        if len(name) < 3 or len(name.split()) < 2:
-            raise InvalidFullNameError()
+        if not name or len(name) < 3:
+            raise InvalidFullNameError("Numele complet este obligatoriu și trebuie să aibă minim 3 caractere.")
+        if any(ch.isdigit() for ch in name):
+            raise InvalidFullNameError("Numele complet nu poate conține cifre. Introduceți doar litere (ex: Popescu Ion).")
+        if len(name.split()) < 2:
+            raise InvalidFullNameError("Numele complet trebuie să conțină atât numele de familie, cât și prenumele.")
 
-        if not data.password or len(data.password) < 6:
+        if not data.password or not is_password_strong(data.password):
             raise PasswordValidationError()
+
+        if not data.rol:
+            raise RoleNotSelectedError()
+
+        if data.rol == UserRole.PROFESOR and (not data.materie_id or data.materie_id <= 0):
+            raise SubjectNotSelectedError("Selectarea unei materii este obligatorie pentru cadrele didactice.")
 
         if data.rol == UserRole.ELEV and (not data.numar_matricol or len(data.numar_matricol.strip()) < 3):
             raise InvalidMatricolError()
@@ -342,14 +378,18 @@ class AuthService:
 
         if data.nume is not None:
             name_clean = data.nume.strip()
-            if len(name_clean) < 3 or len(name_clean.split()) < 2:
-                raise InvalidFullNameError()
+            if not name_clean or len(name_clean) < 3:
+                raise InvalidFullNameError("Numele complet este obligatoriu și trebuie să aibă minim 3 caractere.")
+            if any(ch.isdigit() for ch in name_clean):
+                raise InvalidFullNameError("Numele complet nu poate conține cifre. Introduceți doar litere (ex: Popescu Ion).")
+            if len(name_clean.split()) < 2:
+                raise InvalidFullNameError("Numele complet trebuie să conțină atât numele de familie, cât și prenumele.")
             user.nume = name_clean
 
         if data.email is not None:
             email_clean = data.email.strip().lower()
             import re
-            if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", email_clean):
+            if not email_clean or not re.match(r"^[\w\.-]+@[\w\.-]+\.[a-zA-Z]{2,}$", email_clean):
                 raise InvalidEmailFormatError(email_clean)
             if email_clean != user.email:
                 existing = await auth_repository.get_by_email(db, email_clean)
@@ -374,6 +414,10 @@ class AuthService:
             user.materie_id = data.materie_id if data.materie_id > 0 else None
         if data.is_active is not None:
             user.is_active = data.is_active
+
+        if user.role_rel and user.role_rel.name == UserRole.PROFESOR.value:
+            if not user.materie_id:
+                raise SubjectNotSelectedError("Selectarea unei materii este obligatorie pentru cadrele didactice.")
 
         await db.commit()
         refreshed_user = await auth_repository.get_by_id(db, user_id)

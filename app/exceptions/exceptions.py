@@ -12,9 +12,9 @@ class RequestValidationError(AppException):
         )
 
 class PasswordValidationError(AppException):
-    def __init__(self) -> None:
+    def __init__(self, detail: str = "Parola trebuie sa contina cel putin 8 caractere, majuscule, litere mici, cifre si un simbol special (@$!%*?&_-#^+=()).") -> None:
         super().__init__(
-            message="Parola trebuie sa contina cel putin 8 caractere, majuscule, litere mici, cifre si un simbol special.",
+            message=detail,
             status_code=status.HTTP_400_BAD_REQUEST,
             code="invalid_password",
         )
@@ -153,11 +153,27 @@ class InvalidSpecializationError(AppException):
         )
 
 class InvalidFullNameError(AppException):
-    def __init__(self) -> None:
+    def __init__(self, detail: str = "Numele complet trebuie sa contina doar litere (fara cifre), sa aiba minim 3 caractere si sa includa atat numele de familie, cat si prenumele.") -> None:
         super().__init__(
-            message="Numele complet trebuie sa contina atat numele de familie, cat si prenumele.",
+            message=detail,
             status_code=status.HTTP_400_BAD_REQUEST,
             code="invalid_full_name",
+        )
+
+class RoleNotSelectedError(AppException):
+    def __init__(self, detail: str = "Selectarea unui rol valid (Elev, Profesor, Parinte, Administrator) este obligatorie.") -> None:
+        super().__init__(
+            message=detail,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code="role_not_selected",
+        )
+
+class SubjectNotSelectedError(AppException):
+    def __init__(self, detail: str = "Selectarea unei materii / discipline este obligatorie.") -> None:
+        super().__init__(
+            message=detail,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code="subject_not_selected",
         )
 
 class InvalidMatricolError(AppException):

@@ -14,6 +14,7 @@ from app.exceptions.exceptions import (
     InvalidGradeValueError,
     ParentChildLinkError,
     SubjectNotFoundError,
+    SubjectNotSelectedError,
     UnauthorizedAccessError,
     UserNotFoundError,
 )
@@ -60,6 +61,9 @@ class GradeService:
         role = current_user.role_rel.name if current_user.role_rel else ""
         if role not in (UserRole.PROFESOR.value, UserRole.ADMINISTRATOR.value):
             raise UnauthorizedAccessError("Doar profesorii si administratorii pot introduce note.")
+
+        if not data.materie_id or data.materie_id <= 0:
+            raise SubjectNotSelectedError("Selectarea unei materii este obligatorie.")
 
         if role == UserRole.PROFESOR.value and current_user.materie_id:
             if data.materie_id != current_user.materie_id:
