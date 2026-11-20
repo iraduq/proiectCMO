@@ -9,7 +9,13 @@ from app.api.schemas.edugrade import (
     UserResponse,
 )
 from app.db.models import User, UserRole
-from app.exceptions.exceptions import ClassNotFoundError, SubjectNotFoundError, UnauthorizedAccessError
+from app.exceptions.exceptions import (
+    ClassNotFoundError,
+    InvalidSpecializationError,
+    RequestValidationError,
+    SubjectNotFoundError,
+    UnauthorizedAccessError,
+)
 from app.repositories.class_repository import class_repository
 
 class ClassService:
@@ -90,6 +96,10 @@ class ClassService:
     async def create_class(self, db: AsyncSession, current_user: User, data: SchoolClassCreate) -> SchoolClassResponse:
         if current_user.role_rel.name != UserRole.ADMINISTRATOR.value:
             raise UnauthorizedAccessError("Doar administratorii pot crea clase noi.")
+        if not data.nume or len(data.nume.strip()) < 3:
+            raise RequestValidationError([{"field": "nume", "message": "Numele clasei este obligatoriu (minim 3 caractere, ex: Clasa a IX-a A)."}])
+        if not data.specializare or len(data.specializare.strip()) < 3:
+            raise InvalidSpecializationError("Specializarea clasei este obligatorie (minim 3 caractere, ex: Matematica-Informatica).")
         created = await class_repository.create_class(db, data)
         return SchoolClassResponse(
             id=created.id,
@@ -118,6 +128,10 @@ class ClassService:
     async def create_subject(self, db: AsyncSession, current_user: User, data: SubjectCreate) -> SubjectResponse:
         if current_user.role_rel.name != UserRole.ADMINISTRATOR.value:
             raise UnauthorizedAccessError("Doar administratorii pot adauga materii noi.")
+        if not data.nume or len(data.nume.strip()) < 3:
+            raise RequestValidationError([{"field": "nume", "message": "Denumirea materiei este obligatorie (minim 3 caractere, ex: Matematica)."}])
+        if not data.descriere or len(data.descriere.strip()) < 3:
+            raise InvalidSpecializationError("Specializarea / Profilul materiei este obligatorie (minim 3 caractere, ex: Real, Uman, Stiinte).")
         created = await class_repository.create_subject(db, data)
         if data.profesor_id:
             from app.repositories.auth_repository import auth_repository

@@ -135,3 +135,35 @@ class DataIntegrityError(AppException):
             status_code=status.HTTP_409_CONFLICT,
             code="data_integrity_conflict",
         )
+
+class InvalidEmailFormatError(AppException):
+    def __init__(self, email: str = "") -> None:
+        super().__init__(
+            message=f"Adresa de email '{email}' nu este valida. Introduceti un format valid (ex: utilizator@domeniu.ro).",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code="invalid_email_format",
+        )
+
+class InvalidSpecializationError(AppException):
+    def __init__(self, detail: str = "Specializarea / Profilul este obligatorie si trebuie sa aiba minim 3 caractere.") -> None:
+        super().__init__(
+            message=detail,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code="invalid_specialization",
+        )
+
+class InvalidFullNameError(AppException):
+    def __init__(self) -> None:
+        super().__init__(
+            message="Numele complet trebuie sa contina atat numele de familie, cat si prenumele.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code="invalid_full_name",
+        )
+
+class InvalidMatricolError(AppException):
+    def __init__(self) -> None:
+        super().__init__(
+            message="Numarul matricol este obligatoriu pentru elevi (minim 3 caractere).",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code="invalid_matricol",
+        )

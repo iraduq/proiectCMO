@@ -18,6 +18,9 @@ from app.api.schemas.edugrade import (
 from app.db.models import ParentStudent, User, UserRole
 from app.exceptions.exceptions import (
     InvalidCredentialsError,
+    InvalidEmailFormatError,
+    InvalidFullNameError,
+    InvalidMatricolError,
     ParentChildLinkError,
     PasswordValidationError,
     UnauthorizedAccessError,
@@ -288,11 +291,28 @@ class AuthService:
         )
 
     async def create_user_by_admin(self, db: AsyncSession, data: RegisterRequest) -> UserResponse:
-        existing = await auth_repository.get_by_email(db, data.email)
+        import re
+        email = data.email.strip().lower() if data.email else ""
+        if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", email):
+            raise InvalidEmailFormatError(email)
+
+        name = data.nume.strip() if data.nume else ""
+        if len(name) < 3 or len(name.split()) < 2:
+            raise InvalidFullNameError()
+
+        if not data.password or len(data.password) < 6:
+            raise PasswordValidationError()
+
+        if data.rol == UserRole.ELEV and (not data.numar_matricol or len(data.numar_matricol.strip()) < 3):
+            raise InvalidMatricolError()
+
+        existing = await auth_repository.get_by_email(db, email)
         if existing:
-            raise UserEmailAlreadyExistsError(data.email)
+            raise UserEmailAlreadyExistsError(email)
 
         pwd_hash = get_password_hash(data.password)
+        data.email = email
+        data.nume = name
         user = await auth_repository.create(db, data, pwd_hash)
 
         role_name = user.role_rel.name if user.role_rel else data.rol.value
