@@ -144,10 +144,15 @@ class ClassService:
     async def create_subject(self, db: AsyncSession, current_user: User, data: SubjectCreate) -> SubjectResponse:
         if current_user.role_rel.name != UserRole.ADMINISTRATOR.value:
             raise UnauthorizedAccessError("Doar administratorii pot adauga materii noi.")
-        if not data.nume or len(data.nume.strip()) < 3:
-            raise InvalidSubjectNameError()
+        subj_name = data.nume.strip() if data.nume else ""
+        if not subj_name or len(subj_name) < 3:
+            raise InvalidSubjectNameError("Denumirea materiei este obligatorie (minim 3 caractere, ex: Matematică, Informatică).")
+        if any(ch.isdigit() for ch in subj_name):
+            raise InvalidSubjectNameError("Denumirea materiei nu poate conține cifre (ex: Matematică, Istorie).")
         if not data.descriere or len(data.descriere.strip()) < 3:
             raise InvalidSpecializationError("Specializarea / Profilul materiei este obligatorie (minim 3 caractere, ex: Real, Uman, Stiinte).")
+        data.nume = subj_name
+        data.descriere = data.descriere.strip()
         created = await class_repository.create_subject(db, data)
         if data.profesor_id:
             from app.repositories.auth_repository import auth_repository

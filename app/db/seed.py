@@ -195,18 +195,18 @@ async def seed_all(db: AsyncSession) -> None:
 
     now = datetime.now(timezone.utc)
     note_andrei = [
-        Grade(elev_id=elev_andrei.id_utilizator, profesor_id=prof_ionescu.id_utilizator, materie_id=materii[0].id, valoare=10, tip_evaluare="TEST", data_notare=now - timedelta(days=20), observatii="Test initial analiza"),
-        Grade(elev_id=elev_andrei.id_utilizator, profesor_id=prof_ionescu.id_utilizator, materie_id=materii[0].id, valoare=9, tip_evaluare="ORAL", data_notare=now - timedelta(days=10), observatii="Raspuns oral matrice"),
-        Grade(elev_id=elev_andrei.id_utilizator, profesor_id=prof_ionescu.id_utilizator, materie_id=materii[0].id, valoare=10, tip_evaluare="TEZA", data_notare=now - timedelta(days=2), observatii="Teza semestriala"),
-        Grade(elev_id=elev_andrei.id_utilizator, profesor_id=prof_popa.id_utilizator, materie_id=materii[1].id, valoare=10, tip_evaluare="PROIECT", data_notare=now - timedelta(days=15), observatii="Implementare arbore binar"),
-        Grade(elev_id=elev_andrei.id_utilizator, profesor_id=prof_popa.id_utilizator, materie_id=materii[1].id, valoare=10, tip_evaluare="TEST", data_notare=now - timedelta(days=5), observatii="Test algoritmi grafuri"),
-        Grade(elev_id=elev_andrei.id_utilizator, profesor_id=prof_ionescu.id_utilizator, materie_id=materii[2].id, valoare=9, tip_evaluare="TEST", data_notare=now - timedelta(days=12), observatii="Eseu literatura clasica"),
-        Grade(elev_id=elev_andrei.id_utilizator, profesor_id=prof_ionescu.id_utilizator, materie_id=materii[3].id, valoare=10, tip_evaluare="ACTIVITATE", data_notare=now - timedelta(days=7), observatii="Lucrare practica laborator"),
+        Grade(elev_id=elev_andrei.id_utilizator, profesor_id=prof_ionescu.id_utilizator, materie_id=materii[0].id, valoare=10, tip_evaluare="TEST", data_notare=now - timedelta(days=20), observatii=None),
+        Grade(elev_id=elev_andrei.id_utilizator, profesor_id=prof_ionescu.id_utilizator, materie_id=materii[0].id, valoare=9, tip_evaluare="ORAL", data_notare=now - timedelta(days=10), observatii=None),
+        Grade(elev_id=elev_andrei.id_utilizator, profesor_id=prof_ionescu.id_utilizator, materie_id=materii[0].id, valoare=10, tip_evaluare="TEZA", data_notare=now - timedelta(days=2), observatii=None),
+        Grade(elev_id=elev_andrei.id_utilizator, profesor_id=prof_popa.id_utilizator, materie_id=materii[1].id, valoare=10, tip_evaluare="PROIECT", data_notare=now - timedelta(days=15), observatii=None),
+        Grade(elev_id=elev_andrei.id_utilizator, profesor_id=prof_popa.id_utilizator, materie_id=materii[1].id, valoare=10, tip_evaluare="TEST", data_notare=now - timedelta(days=5), observatii=None),
+        Grade(elev_id=elev_andrei.id_utilizator, profesor_id=prof_ionescu.id_utilizator, materie_id=materii[2].id, valoare=9, tip_evaluare="TEST", data_notare=now - timedelta(days=12), observatii=None),
+        Grade(elev_id=elev_andrei.id_utilizator, profesor_id=prof_ionescu.id_utilizator, materie_id=materii[3].id, valoare=10, tip_evaluare="ACTIVITATE", data_notare=now - timedelta(days=7), observatii=None),
     ]
     note_elena = [
-        Grade(elev_id=elev_elena.id_utilizator, profesor_id=prof_ionescu.id_utilizator, materie_id=materii[0].id, valoare=9, tip_evaluare="TEST", data_notare=now - timedelta(days=18), observatii="Calcul diferential"),
-        Grade(elev_id=elev_elena.id_utilizator, profesor_id=prof_popa.id_utilizator, materie_id=materii[1].id, valoare=10, tip_evaluare="PROIECT", data_notare=now - timedelta(days=8), observatii="Proiect interfata web"),
-        Grade(elev_id=elev_elena.id_utilizator, profesor_id=prof_ionescu.id_utilizator, materie_id=materii[2].id, valoare=10, tip_evaluare="TEZA", data_notare=now - timedelta(days=3), observatii="Teza limba romana"),
+        Grade(elev_id=elev_elena.id_utilizator, profesor_id=prof_ionescu.id_utilizator, materie_id=materii[0].id, valoare=9, tip_evaluare="TEST", data_notare=now - timedelta(days=18), observatii=None),
+        Grade(elev_id=elev_elena.id_utilizator, profesor_id=prof_popa.id_utilizator, materie_id=materii[1].id, valoare=10, tip_evaluare="PROIECT", data_notare=now - timedelta(days=8), observatii=None),
+        Grade(elev_id=elev_elena.id_utilizator, profesor_id=prof_ionescu.id_utilizator, materie_id=materii[2].id, valoare=10, tip_evaluare="TEZA", data_notare=now - timedelta(days=3), observatii=None),
     ]
     db.add_all(note_andrei + note_elena)
     await db.flush()
